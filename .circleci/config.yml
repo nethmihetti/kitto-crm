@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_and_test:
     docker:
       # specify the version you desire here
       - image: circleci/node:7.10
@@ -26,7 +26,7 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
 
       # run tests!
-      - run: npm test
+      #- run: npm test
 
   deploy_to_dev:
     docker:
@@ -57,7 +57,7 @@ jobs:
               --build-arg COMMIT_REF=${CIRCLE_SHA1} \
               --build-arg BUILD_DATE=`date -u +”%Y-%m-%dT%H:%M:%SZ”` \
               -t ${GOOGLE_PROJECT_ID} .
-            docker tag ${GOOGLE_PROJECT_ID} eu.gcr.io/${GOOGLE_PROJECT_ID}/backendrepo:${CIRCLE_SHA1}
+            docker tag ${GOOGLE_PROJECT_ID} eu.gcr.io/${GOOGLE_PROJECT_ID}/frontendrepo:${CIRCLE_SHA1}
             docker push eu.gcr.io/${GOOGLE_PROJECT_ID}/frontendrepo:${CIRCLE_SHA1}
       - run:
           name: Deploy to Kubernetes
@@ -70,13 +70,11 @@ jobs:
     docker:
       - image: google/cloud-sdk
     environment:
-      - PROJECT_NAME: "InsuranceAggregatorBackEnd"
-      - GOOGLE_PROJECT_ID: "insuranceaggregatorbackend"
+      - PROJECT_NAME: "InsuranceAggregatorFrontEnd"
+      - GOOGLE_PROJECT_ID: "insuranceaggregatorfrontend"
       - GOOGLE_COMPUTE_ZONE: "us-central1-b"
-      - GOOGLE_CLUSTER_NAME: "aggregator-backend-nonprod"
-      #- DATASOURCE_URL: ${DATASOURCE_URL}
-      - DATASOURCE_USERNAME: "insuranceAdmin"
-      - DATASOURCE_PASSWORD: "soramitsu1234"
+      - GOOGLE_CLUSTER_NAME: "kitto-insurance-frontend"
+
     steps:
       - checkout
       - run:
@@ -92,7 +90,6 @@ jobs:
       - run:
           name: Docker build and push
           command: |
-            echo $DATASOURCE_URL
             gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://eu.gcr.io
             docker build \
               --no-cache -f infrastructure/Dockerfile \
@@ -100,8 +97,8 @@ jobs:
               --build-arg BUILD_DATE=`date -u +”%Y-%m-%dT%H:%M:%SZ”` \
               --build-arg DATASOURCE_URL=$DATASOURCE_URL \
               -t ${GOOGLE_PROJECT_ID} .
-            docker tag ${GOOGLE_PROJECT_ID} eu.gcr.io/${GOOGLE_PROJECT_ID}/backendrepo:${CIRCLE_SHA1}
-            docker push eu.gcr.io/${GOOGLE_PROJECT_ID}/backendrepo:${CIRCLE_SHA1}
+            docker tag ${GOOGLE_PROJECT_ID} eu.gcr.io/${GOOGLE_PROJECT_ID}/frontendrepo:${CIRCLE_SHA1}
+            docker push eu.gcr.io/${GOOGLE_PROJECT_ID}/frontendrepo:${CIRCLE_SHA1}
       - run:
           name: Deploy to Kubernetes
           command: |
